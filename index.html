@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--
+  Created by Claude Code — Claude Sonnet 5 (claude-sonnet-5),
+  planned with Claude Opus 5.5.
+  Prompt: "Add read-only JSON API (/api/books, /api/books/<id>) with CORS
+  for GitHub Pages site Books_JS_List" — this is the GitHub Pages front end.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stacks — a live book index</title>
+  <meta name="description" content="A fast, filterable index of a personal book collection, read live from the Reading Room API." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="wordmark">
+      <span class="bracket">[</span>STACKS<span class="bracket">]</span>
+    </div>
+    <p class="tagline">a live index of every book on the shelf</p>
+  </header>
+
+  <main>
+    <section class="stats-bar" id="statsBar" aria-label="Collection statistics" aria-live="polite">
+      <p class="stats-placeholder">reading the shelf…</p>
+    </section>
+
+    <section class="toolbar" aria-label="Search, filter and sort">
+      <div class="field field-search">
+        <label for="searchInput">Search</label>
+        <input
+          type="search"
+          id="searchInput"
+          placeholder="title or author…"
+          autocomplete="off"
+          disabled
+        />
+      </div>
+
+      <div class="field">
+        <label for="genreSelect">Genre</label>
+        <select id="genreSelect" disabled>
+          <option value="">All genres</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="statusSelect">Status</label>
+        <select id="statusSelect" disabled>
+          <option value="">All statuses</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="sortSelect">Sort by</label>
+        <select id="sortSelect" disabled>
+          <option value="title">Title A→Z</option>
+          <option value="author">Author A→Z</option>
+          <option value="year">Year, newest</option>
+          <option value="rating">Rating, highest</option>
+        </select>
+      </div>
+    </section>
+
+    <p class="result-count" id="resultCount" aria-live="polite"></p>
+
+    <div id="stateArea" aria-live="polite"></div>
+
+    <ul class="book-grid" id="bookGrid"></ul>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      Live data from <code id="apiLabel">…</code> · read-only ·
+      <a href="https://github.com/RandyScott777/Books_JS_List" target="_blank" rel="noopener">source</a>
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
