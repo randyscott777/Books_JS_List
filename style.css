@@ -389,59 +389,62 @@ main {
   color: var(--ink-faint);
 }
 
-/* -------------------------------------------------------------- book grid */
+/* -------------------------------------------------------------- book list */
+/* One line per record (changed by Claude Opus 5.5): title left, author
+   right, both truncated with an ellipsis so every row stays one line. */
 
-.book-grid {
+.book-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-}
-
-.book-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--bg-panel);
-  padding: 1.1rem 1.1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  animation: rise 0.35s ease both;
-  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  overflow: hidden;
 }
 
-.book-card:hover {
-  border-color: var(--line-bright);
+.book-row {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1.25rem;
+  align-items: baseline;
+  padding: 0.45rem 1rem;
+  border-bottom: 1px solid var(--line);
+  border-left: 2px solid transparent;
+  scroll-margin-top: 1rem;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.book-row:last-child {
+  border-bottom: none;
+}
+
+.book-row:hover {
   background: var(--bg-panel-raised);
-  transform: translateY(-2px);
+  border-left-color: var(--lime);
 }
 
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.book-title,
+.book-author {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .book-title {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1rem;
-  line-height: 1.3;
   color: var(--ink);
-  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .book-author {
   color: var(--ink-dim);
-  font-size: 0.85rem;
-  margin: 0;
+  font-size: 0.82rem;
+  text-align: right;
+}
+
+.book-row:hover .book-author {
+  color: var(--magenta);
 }
 
 /* --------------------------------------------------------------- footer */
@@ -484,8 +487,9 @@ main {
   .stats-bar {
     grid-template-columns: repeat(2, 1fr);
   }
-  .book-grid {
-    grid-template-columns: 1fr;
+  .book-row {
+    gap: 0.75rem;
+    padding: 0.45rem 0.75rem;
   }
   .letter-btn {
     width: 1.55rem;
@@ -495,7 +499,7 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .book-card,
+  .book-row,
   .retry-btn,
   .spinner {
     animation: none;

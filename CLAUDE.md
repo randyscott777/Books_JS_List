@@ -30,7 +30,7 @@ page reads like a live console over the book collection.
 ```
 Books_JS_List/                 (this repo — GitHub Pages, main branch, root)
 ├── index.html                 markup: header, stats bar, toolbar, letter
-│                               index, grid, footer
+│                               index, one-line book list, footer
 ├── style.css                  dark "terminal index card" theme, responsive
 ├── app.js                     fetch + client-side search/sort/stats/render
 ├── README.md
@@ -146,3 +146,9 @@ This repo is published via GitHub Pages from the `main` branch, root
   PythonAnywhere API when served from localhost. Checked with a Node fetch
   simulation (local fails in ~20ms, remote returns 277 books) and a CORS
   check for origin `http://127.0.0.1:8000`. Built with Claude Opus 5.5.
+- **2026-09-24** — "display as a single line per record": replaced the
+  card grid with a single bordered list (`#bookList`, `.book-row`). Each
+  row is one line, with the title on the left and the author on the right.
+  Long text is cut off with an ellipsis, and the full text shows on hover.
+  The hover state has a lime left edge and a magenta author. The letter
+  index still jumps to the first matching row. Built with Claude Opus 5.5.

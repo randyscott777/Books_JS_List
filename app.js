@@ -26,7 +26,7 @@
   const els = {
     statsBar: document.getElementById("statsBar"),
     stateArea: document.getElementById("stateArea"),
-    bookGrid: document.getElementById("bookGrid"),
+    bookList: document.getElementById("bookList"),
     resultCount: document.getElementById("resultCount"),
     searchInput: document.getElementById("searchInput"),
     sortSelect: document.getElementById("sortSelect"),
@@ -67,7 +67,7 @@
       '<p class="state-detail">Waking the library server — this can take a few seconds.</p>';
     els.stateArea.appendChild(panel);
 
-    els.bookGrid.replaceChildren();
+    els.bookList.replaceChildren();
     els.resultCount.textContent = "";
     els.letterIndex.replaceChildren();
     els.statsBar.replaceChildren();
@@ -90,7 +90,7 @@
       '<button type="button" class="retry-btn" id="retryBtn">Retry</button>';
     els.stateArea.appendChild(panel);
 
-    els.bookGrid.replaceChildren();
+    els.bookList.replaceChildren();
     els.resultCount.textContent = "";
     els.letterIndex.replaceChildren();
     els.statsBar.replaceChildren();
@@ -170,10 +170,10 @@
     els.sortSelect.value = "title-asc";
     render();
     requestAnimationFrame(() => {
-      const titles = els.bookGrid.querySelectorAll(".book-title");
+      const titles = els.bookList.querySelectorAll(".book-title");
       for (const titleEl of titles) {
         if (titleEl.textContent.trim().charAt(0).toUpperCase() === letter) {
-          titleEl.closest(".book-card").scrollIntoView({ behavior: "smooth", block: "start" });
+          titleEl.closest(".book-row").scrollIntoView({ behavior: "smooth", block: "start" });
           break;
         }
       }
@@ -286,19 +286,23 @@
     return div;
   }
 
-  // ------------------------------------------------------------- cards
+  // ------------------------------------------------------------- rows
+  // One line per record: title left, author right, each truncated with an
+  // ellipsis (full text in the tooltip). Changed by Claude Opus 5.5.
 
-  function buildCard(book) {
+  function buildRow(book) {
     const li = document.createElement("li");
-    li.className = "book-card";
+    li.className = "book-row";
 
-    const title = document.createElement("h3");
+    const title = document.createElement("span");
     title.className = "book-title";
     title.textContent = book.title || "Untitled";
+    title.title = title.textContent;
 
-    const author = document.createElement("p");
+    const author = document.createElement("span");
     author.className = "book-author";
     author.textContent = book.author || "Unknown author";
+    author.title = author.textContent;
 
     li.appendChild(title);
     li.appendChild(author);
@@ -312,7 +316,7 @@
     const filtered = getFiltered();
     renderStats(filtered);
 
-    els.bookGrid.replaceChildren();
+    els.bookList.replaceChildren();
 
     if (filtered.length === 0) {
       showEmptyState();
@@ -322,8 +326,8 @@
 
     clearStateArea();
     const frag = document.createDocumentFragment();
-    filtered.forEach((b) => frag.appendChild(buildCard(b)));
-    els.bookGrid.appendChild(frag);
+    filtered.forEach((b) => frag.appendChild(buildRow(b)));
+    els.bookList.appendChild(frag);
     els.resultCount.textContent = `${filtered.length} of ${allBooks.length} books`;
   }
 
