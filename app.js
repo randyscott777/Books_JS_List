@@ -1,8 +1,9 @@
 // Created by Claude Code — Claude Sonnet 5 (claude-sonnet-5),
 // planned with Claude Opus 5.5.
-// Prompt: "Add read-only JSON API (/api/books, /api/books/<id>) with CORS
-// for GitHub Pages site Books_JS_List" — this file is the client for that
-// API: one fetch on load, then all search/filter/sort/stats run locally.
+// Prompt: "add the API code to the mysite/books folder in
+// randyscott777_pythonanywhere project" — this file is the client for the
+// mysite Books blueprint's read-only API: one fetch on load, then all
+// search/sort/stats run locally against id/title/author records.
 //
 // Plain JS, no build step, no frameworks, no external JS libraries.
 
@@ -16,7 +17,7 @@
       ? "http://127.0.0.1:5000"
       : "https://randyscott777.pythonanywhere.com";
 
-  const STATUSES = ["Unread", "Reading", "Finished", "Wishlist"];
+  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
   const els = {
     statsBar: document.getElementById("statsBar"),
@@ -24,9 +25,8 @@
     bookGrid: document.getElementById("bookGrid"),
     resultCount: document.getElementById("resultCount"),
     searchInput: document.getElementById("searchInput"),
-    genreSelect: document.getElementById("genreSelect"),
-    statusSelect: document.getElementById("statusSelect"),
     sortSelect: document.getElementById("sortSelect"),
+    letterIndex: document.getElementById("letterIndex"),
     apiLabel: document.getElementById("apiLabel"),
   };
 
@@ -38,29 +38,13 @@
 
   // ------------------------------------------------------------- helpers
 
-  function clearNode(node) {
-    while (node.firstChild) node.removeChild(node.firstChild);
-  }
-
   function setControlsEnabled(enabled) {
     els.searchInput.disabled = !enabled;
-    els.genreSelect.disabled = !enabled;
-    els.statusSelect.disabled = !enabled;
     els.sortSelect.disabled = !enabled;
   }
 
   function cmpText(a, b) {
     return (a || "").localeCompare(b || "", undefined, { sensitivity: "base" });
-  }
-
-  // Numeric compare with nulls always sorted last, regardless of direction.
-  function cmpNullableNumber(a, b, descending) {
-    const aNull = a === null || a === undefined || a === "";
-    const bNull = b === null || b === undefined || b === "";
-    if (aNull && bNull) return 0;
-    if (aNull) return 1;
-    if (bNull) return -1;
-    return descending ? b - a : a - b;
   }
 
   // ------------------------------------------------------------- states
@@ -77,6 +61,7 @@
 
     els.bookGrid.replaceChildren();
     els.resultCount.textContent = "";
+    els.letterIndex.replaceChildren();
     els.statsBar.replaceChildren();
     const placeholder = document.createElement("p");
     placeholder.className = "stats-placeholder";
@@ -99,6 +84,7 @@
 
     els.bookGrid.replaceChildren();
     els.resultCount.textContent = "";
+    els.letterIndex.replaceChildren();
     els.statsBar.replaceChildren();
     setControlsEnabled(false);
 
@@ -111,8 +97,8 @@
     panel.className = "state-panel is-empty";
     panel.innerHTML =
       '<div class="state-icon" aria-hidden="true">&middot;&middot;&middot;</div>' +
-      '<p class="state-title">No books match those filters.</p>' +
-      '<p class="state-detail">Try a broader search, or clear a filter.</p>';
+      '<p class="state-title">No books match that search.</p>' +
+      '<p class="state-detail">Try a broader search term.</p>';
     els.stateArea.appendChild(panel);
   }
 
@@ -131,8 +117,7 @@
       allBooks = Array.isArray(data) ? data : [];
       clearStateArea();
       setControlsEnabled(true);
-      populateGenreOptions();
-      populateStatusOptions();
+      buildLetterIndex();
       render();
     } catch (err) {
       allBooks = [];
@@ -140,79 +125,67 @@
     }
   }
 
-  function populateGenreOptions() {
-    const current = els.genreSelect.value;
-    const genres = Array.from(
-      new Set(allBooks.map((b) => (b.genre || "").trim()).filter(Boolean))
-    ).sort((a, b) => cmpText(a, b));
+  // ------------------------------------------------------------- letter index
 
-    els.genreSelect.replaceChildren();
-    const allOpt = document.createElement("option");
-    allOpt.value = "";
-    allOpt.textContent = "All genres";
-    els.genreSelect.appendChild(allOpt);
+  function buildLetterIndex() {
+    const present = new Set(
+      allBooks
+        .map((b) => (b.title || "").trim().charAt(0).toUpperCase())
+        .filter(Boolean)
+    );
 
-    genres.forEach((g) => {
-      const opt = document.createElement("option");
-      opt.value = g;
-      opt.textContent = g; // textContent — safe even though genre is user-entered
-      els.genreSelect.appendChild(opt);
+    els.letterIndex.replaceChildren();
+    ALPHABET.forEach((letter) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "letter-btn";
+      btn.textContent = letter;
+      if (present.has(letter)) {
+        btn.addEventListener("click", () => jumpToLetter(letter));
+      } else {
+        btn.disabled = true;
+      }
+      els.letterIndex.appendChild(btn);
     });
-
-    if (genres.includes(current)) els.genreSelect.value = current;
   }
 
-  function populateStatusOptions() {
-    const current = els.statusSelect.value;
-    els.statusSelect.replaceChildren();
-    const allOpt = document.createElement("option");
-    allOpt.value = "";
-    allOpt.textContent = "All statuses";
-    els.statusSelect.appendChild(allOpt);
-
-    STATUSES.forEach((s) => {
-      const opt = document.createElement("option");
-      opt.value = s;
-      opt.textContent = s;
-      els.statusSelect.appendChild(opt);
+  function jumpToLetter(letter) {
+    els.searchInput.value = "";
+    els.sortSelect.value = "title-asc";
+    render();
+    requestAnimationFrame(() => {
+      const titles = els.bookGrid.querySelectorAll(".book-title");
+      for (const titleEl of titles) {
+        if (titleEl.textContent.trim().charAt(0).toUpperCase() === letter) {
+          titleEl.closest(".book-card").scrollIntoView({ behavior: "smooth", block: "start" });
+          break;
+        }
+      }
     });
-
-    if (STATUSES.includes(current)) els.statusSelect.value = current;
   }
 
   // ------------------------------------------------------------- filter/sort
 
   function getFiltered() {
     const q = els.searchInput.value.trim().toLowerCase();
-    const genre = els.genreSelect.value;
-    const status = els.statusSelect.value;
     const sort = els.sortSelect.value;
 
     let list = allBooks.filter((b) => {
-      if (genre && (b.genre || "") !== genre) return false;
-      if (status && (b.status || "") !== status) return false;
-      if (q) {
-        const title = (b.title || "").toLowerCase();
-        const author = (b.author || "").toLowerCase();
-        if (!title.includes(q) && !author.includes(q)) return false;
-      }
-      return true;
+      if (!q) return true;
+      const title = (b.title || "").toLowerCase();
+      const author = (b.author || "").toLowerCase();
+      return title.includes(q) || author.includes(q);
     });
 
     list = list.slice().sort((a, b) => {
       switch (sort) {
-        case "author":
+        case "title-desc":
+          return -cmpText(a.title, b.title);
+        case "author-asc":
           return cmpText(a.author, b.author) || cmpText(a.title, b.title);
-        case "year":
-          return (
-            cmpNullableNumber(a.year, b.year, true) || cmpText(a.title, b.title)
-          );
-        case "rating":
-          return (
-            cmpNullableNumber(a.rating, b.rating, true) ||
-            cmpText(a.title, b.title)
-          );
-        case "title":
+        case "author-desc":
+          return -cmpText(a.author, b.author) || cmpText(a.title, b.title);
+        case "title-asc":
         default:
           return cmpText(a.title, b.title);
       }
@@ -227,38 +200,21 @@
     els.statsBar.replaceChildren();
 
     const total = list.length;
-    const counts = { Unread: 0, Reading: 0, Finished: 0, Wishlist: 0 };
-    list.forEach((b) => {
-      if (Object.prototype.hasOwnProperty.call(counts, b.status)) {
-        counts[b.status]++;
-      }
-    });
 
-    const rated = list.filter((b) => typeof b.rating === "number");
-    const avg = rated.length
-      ? (rated.reduce((sum, b) => sum + b.rating, 0) / rated.length).toFixed(1)
-      : null;
-
-    const genreCounts = new Map();
+    const authorCounts = new Map();
     list.forEach((b) => {
-      const g = (b.genre || "").trim();
-      if (!g) return;
-      genreCounts.set(g, (genreCounts.get(g) || 0) + 1);
+      const a = (b.author || "").trim();
+      if (!a) return;
+      authorCounts.set(a, (authorCounts.get(a) || 0) + 1);
     });
-    const topGenres = Array.from(genreCounts.entries())
+    const distinctAuthors = authorCounts.size;
+    const topAuthors = Array.from(authorCounts.entries())
       .sort((a, b) => b[1] - a[1] || cmpText(a[0], b[0]))
       .slice(0, 3);
 
-    els.statsBar.appendChild(makeStat("total", "Total", String(total)));
-    STATUSES.forEach((s) => {
-      els.statsBar.appendChild(
-        makeStat(s.toLowerCase(), s, String(counts[s]))
-      );
-    });
-    els.statsBar.appendChild(
-      makeStat("rating", "Avg rating", avg === null ? "—" : `${avg}★`)
-    );
-    els.statsBar.appendChild(makeGenreStat(topGenres));
+    els.statsBar.appendChild(makeStat("total", "Books", String(total)));
+    els.statsBar.appendChild(makeStat("authors", "Authors", String(distinctAuthors)));
+    els.statsBar.appendChild(makeAuthorStat(topAuthors));
   }
 
   function makeStat(key, label, value) {
@@ -279,17 +235,17 @@
     return div;
   }
 
-  function makeGenreStat(topGenres) {
+  function makeAuthorStat(topAuthors) {
     const div = document.createElement("div");
     div.className = "stat";
-    div.dataset.stat = "genres";
+    div.dataset.stat = "top-authors";
 
     const l = document.createElement("span");
     l.className = "stat-label";
-    l.textContent = "Top genres";
+    l.textContent = "Top authors";
     div.appendChild(l);
 
-    if (!topGenres.length) {
+    if (!topAuthors.length) {
       const v = document.createElement("span");
       v.className = "stat-value is-small";
       v.textContent = "—";
@@ -298,16 +254,16 @@
     }
 
     const ul = document.createElement("ul");
-    ul.className = "stat-genres-list";
-    topGenres.forEach(([g, c]) => {
+    ul.className = "stat-list";
+    topAuthors.forEach(([name, count]) => {
       const li = document.createElement("li");
-      const name = document.createElement("span");
-      name.textContent = g;
-      const count = document.createElement("span");
-      count.className = "count";
-      count.textContent = String(c);
-      li.appendChild(name);
-      li.appendChild(count);
+      const nameEl = document.createElement("span");
+      nameEl.textContent = name;
+      const countEl = document.createElement("span");
+      countEl.className = "count";
+      countEl.textContent = String(count);
+      li.appendChild(nameEl);
+      li.appendChild(countEl);
       ul.appendChild(li);
     });
     div.appendChild(ul);
@@ -316,80 +272,20 @@
 
   // ------------------------------------------------------------- cards
 
-  function renderStars(rating) {
-    const wrap = document.createElement("span");
-    wrap.className = "stars";
-
-    if (typeof rating !== "number" || rating < 1) {
-      wrap.dataset.empty = "true";
-      wrap.textContent = "not rated";
-      return wrap;
-    }
-
-    const clamped = Math.max(1, Math.min(5, Math.round(rating)));
-    wrap.setAttribute("role", "img");
-    wrap.setAttribute("aria-label", `${clamped} out of 5 stars`);
-
-    const filled = document.createElement("span");
-    filled.className = "filled";
-    filled.textContent = "★".repeat(clamped);
-    wrap.appendChild(filled);
-    wrap.appendChild(document.createTextNode("☆".repeat(5 - clamped)));
-    return wrap;
-  }
-
   function buildCard(book) {
     const li = document.createElement("li");
     li.className = "book-card";
 
-    const top = document.createElement("div");
-    top.className = "book-card-top";
-
-    const titleWrap = document.createElement("div");
     const title = document.createElement("h3");
     title.className = "book-title";
     title.textContent = book.title || "Untitled";
+
     const author = document.createElement("p");
     author.className = "book-author";
     author.textContent = book.author || "Unknown author";
-    titleWrap.appendChild(title);
-    titleWrap.appendChild(author);
 
-    const badge = document.createElement("span");
-    badge.className = "status-badge";
-    const status = STATUSES.includes(book.status) ? book.status : "Unread";
-    badge.dataset.status = status;
-    badge.textContent = status;
-
-    top.appendChild(titleWrap);
-    top.appendChild(badge);
-    li.appendChild(top);
-
-    const meta = document.createElement("div");
-    meta.className = "book-meta";
-    if (book.genre) {
-      const tag = document.createElement("span");
-      tag.className = "book-genre-tag";
-      tag.textContent = book.genre;
-      meta.appendChild(tag);
-    }
-    if (book.year) {
-      const yr = document.createElement("span");
-      yr.className = "book-year";
-      yr.textContent = String(book.year);
-      meta.appendChild(yr);
-    }
-    li.appendChild(meta);
-
-    li.appendChild(renderStars(book.rating));
-
-    if (book.notes) {
-      const notes = document.createElement("p");
-      notes.className = "book-notes";
-      notes.textContent = book.notes;
-      notes.title = book.notes;
-      li.appendChild(notes);
-    }
+    li.appendChild(title);
+    li.appendChild(author);
 
     return li;
   }
@@ -418,8 +314,6 @@
   // ------------------------------------------------------------- wiring
 
   els.searchInput.addEventListener("input", render);
-  els.genreSelect.addEventListener("change", render);
-  els.statusSelect.addEventListener("change", render);
   els.sortSelect.addEventListener("change", render);
 
   loadBooks();

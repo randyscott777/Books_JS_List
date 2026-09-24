@@ -2,15 +2,16 @@
 <!--
   Created by Claude Code — Claude Sonnet 5 (claude-sonnet-5),
   planned with Claude Opus 5.5.
-  Prompt: "Add read-only JSON API (/api/books, /api/books/<id>) with CORS
-  for GitHub Pages site Books_JS_List" — this is the GitHub Pages front end.
+  Prompt: "add the API code to the mysite/books folder in
+  randyscott777_pythonanywhere project" — this is the GitHub Pages front
+  end, adapted to the live data's actual shape: id/title/author only.
 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Stacks — a live book index</title>
-  <meta name="description" content="A fast, filterable index of a personal book collection, read live from the Reading Room API." />
+  <meta name="description" content="A fast, searchable index of a personal book collection, read live from the Books API." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -35,7 +36,7 @@
       <p class="stats-placeholder">reading the shelf…</p>
     </section>
 
-    <section class="toolbar" aria-label="Search, filter and sort">
+    <section class="toolbar" aria-label="Search and sort">
       <div class="field field-search">
         <label for="searchInput">Search</label>
         <input
@@ -48,29 +49,17 @@
       </div>
 
       <div class="field">
-        <label for="genreSelect">Genre</label>
-        <select id="genreSelect" disabled>
-          <option value="">All genres</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label for="statusSelect">Status</label>
-        <select id="statusSelect" disabled>
-          <option value="">All statuses</option>
-        </select>
-      </div>
-
-      <div class="field">
         <label for="sortSelect">Sort by</label>
         <select id="sortSelect" disabled>
-          <option value="title">Title A→Z</option>
-          <option value="author">Author A→Z</option>
-          <option value="year">Year, newest</option>
-          <option value="rating">Rating, highest</option>
+          <option value="title-asc">Title A&rarr;Z</option>
+          <option value="title-desc">Title Z&rarr;A</option>
+          <option value="author-asc">Author A&rarr;Z</option>
+          <option value="author-desc">Author Z&rarr;A</option>
         </select>
       </div>
     </section>
+
+    <nav class="letter-index" id="letterIndex" aria-label="Jump to a letter"></nav>
 
     <p class="result-count" id="resultCount" aria-live="polite"></p>
 
