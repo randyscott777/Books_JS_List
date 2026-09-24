@@ -43,17 +43,22 @@ Randyscott777_PythonAnywhere/mysite/     (separate project — NOT part of this 
                                 to /api/books* paths only.
 ```
 
-Data flow: on page load, `app.js` does one `fetch(`${API_BASE}/api/books`)`
-against the Books API. Everything after that — search, sort, the live stats
+Data flow: on page load, `app.js` fetches `/api/books` from the Books API
+(one successful request; see the fallback below). Everything after that — search, sort, the live stats
 bar, the letter index, "N of M books", and the empty state — is computed
 locally against the in-memory array. No caching: every page load or Retry
 click is a fresh network request (`cache: "no-store"`).
 
-`API_BASE` is chosen at runtime in `app.js`:
-- `location.hostname` is `localhost` or `127.0.0.1` → `http://127.0.0.1:5000`
-  (the local Flask dev server)
+The API base is chosen at runtime in `app.js` (`API_BASES`):
+- `location.hostname` is `localhost` or `127.0.0.1` → try
+  `http://127.0.0.1:5000` (the local Flask dev server) first with a 2s
+  timeout, then fall back to `https://randyscott777.pythonanywhere.com`
+  if the local server is down or returns an error. The footer label shows
+  whichever base actually answered.
 - anything else (i.e. the deployed `randyscott777.github.io` site) →
-  `https://randyscott777.pythonanywhere.com`
+  `https://randyscott777.pythonanywhere.com` only.
+- Opening `index.html` as a `file://` URL does not work: the API's CORS
+  allowlist has no `null` origin. Serve the folder over HTTP on port 8000.
 
 ## How to run locally
 
@@ -130,3 +135,14 @@ This repo is published via GitHub Pages from the `main` branch, root
   points at the `mysite` app instead of `Books_Maintenance`. Kept the
   "terminal index card" visual language throughout.
   Built with Claude Sonnet 5, planned with Claude Opus 5.5.
+- **2026-09-24** — "error: The library server is offline or waking up."
+  Diagnosis: the deployed API and its CORS header were fine. The error came
+  from opening the page locally, where `app.js` pointed only at
+  `127.0.0.1:5000` and nothing was running there. Opening `index.html` as a
+  `file://` URL gives the same error, because the CORS allowlist has no
+  `null` origin.
+- **2026-09-24** — "yes" (to making local pages fall back to PythonAnywhere):
+  `app.js` now tries `127.0.0.1:5000` (2s timeout) and then the
+  PythonAnywhere API when served from localhost. Checked with a Node fetch
+  simulation (local fails in ~20ms, remote returns 277 books) and a CORS
+  check for origin `http://127.0.0.1:8000`. Built with Claude Opus 5.5.

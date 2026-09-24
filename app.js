@@ -10,12 +10,16 @@
 (function () {
   "use strict";
 
-  // Local dev talks to the Flask dev server on :5000; GitHub Pages talks
-  // to the deployed PythonAnywhere app.
-  const API_BASE =
-    location.hostname === "localhost" || location.hostname === "127.0.0.1"
-      ? "http://127.0.0.1:5000"
-      : "https://randyscott777.pythonanywhere.com";
+  // Local dev tries the Flask dev server on :5000 first and falls back to
+  // the deployed PythonAnywhere app if nothing answers there; GitHub Pages
+  // talks to PythonAnywhere directly.
+  // Fallback added by Claude Opus 5.5 (claude-opus-5-5).
+  const LOCAL_API = "http://127.0.0.1:5000";
+  const REMOTE_API = "https://randyscott777.pythonanywhere.com";
+  const IS_LOCAL =
+    location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const API_BASES = IS_LOCAL ? [LOCAL_API, REMOTE_API] : [REMOTE_API];
+  const LOCAL_TIMEOUT_MS = 2000;
 
   const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
@@ -32,9 +36,13 @@
 
   let allBooks = [];
 
-  if (els.apiLabel) {
-    els.apiLabel.textContent = API_BASE;
+  function setApiLabel(base) {
+    if (els.apiLabel) {
+      els.apiLabel.textContent = base;
+    }
   }
+
+  setApiLabel(API_BASES[0]);
 
   // ------------------------------------------------------------- helpers
 
@@ -110,19 +118,27 @@
 
   async function loadBooks() {
     showLoading();
-    try {
-      const res = await fetch(`${API_BASE}/api/books`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-      const data = await res.json();
-      allBooks = Array.isArray(data) ? data : [];
-      clearStateArea();
-      setControlsEnabled(true);
-      buildLetterIndex();
-      render();
-    } catch (err) {
-      allBooks = [];
-      showError();
+    for (const base of API_BASES) {
+      try {
+        const opts = { cache: "no-store" };
+        // don't let a dead local server stall the fallback
+        if (base === LOCAL_API) opts.signal = AbortSignal.timeout(LOCAL_TIMEOUT_MS);
+        const res = await fetch(`${base}/api/books`, opts);
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data = await res.json();
+        allBooks = Array.isArray(data) ? data : [];
+        setApiLabel(base);
+        clearStateArea();
+        setControlsEnabled(true);
+        buildLetterIndex();
+        render();
+        return;
+      } catch (err) {
+        // try the next base, if any
+      }
     }
+    allBooks = [];
+    showError();
   }
 
   // ------------------------------------------------------------- letter index
